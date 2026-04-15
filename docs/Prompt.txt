@@ -1,0 +1,52 @@
+Sistema para Monitoramento de Piscinões utilizando IOT 
+
+Criação de um sistema de monitoramento de reservatórios de detenção “piscinões”, que utilize uma solução de Internet das Coisas (IOT) para monitoramento e possua um sistema de aviso para alertar a população de possíveis enchentes.  
+
+Entender os danos que são causados pelos alagamentos, suas frequências de ocorrência, também identificar na comunidade qual o grau de conhecimento sobre situações de risco, e disponibilizar uma ferramenta de alertas proativos que ajude a população a se conscientizar de um possível problema em tempo real. 
+
+Especificações da Arquitetura
+- Stack tecnológico: Linguagem, Back e Front, Banco, Webserver, SO, etc..
+- Desenho da Arquitetura
+
+Passo a passo para criar uma aplicação com o VSCODE + Claude OPUS
+
+1 - Criar o plano de desenvolvimento
+
+Descreva a aplicação de maneira mais precisa possivel, considerando as funcionalidaes e casos de uso.
+
+Exemplo: 
+
+Sistema para Monitoramento de Piscinões utilizando IOT 
+
+Quero construir um sistema de monitoramento de reservatórios de detenção “piscinões”, que utilize uma solução de Internet das Coisas (IOT) para monitoramento e possua um sistema de aviso para alertar a população de possíveis enchentes. 
+
+Gostaria que me sugerisse módulos e funcionalidades que esse sistema deve ter, se possível me sugira literatura e documentos de referencia para que eu posso ter ideias de o que preciso fazer para montar esse sistema. 
+
+O Objetivo do sistema é reduzir os danos que são causados pelos alagamentos, principlamente focado na metigação de risco à vida das  e disponibilizar uma ferramenta de alertas proativos que ajude a população a se conscientizar de um possível problema em tempo real. 
+
+
+Considere que ele terá informações vindas de três fontes:
+- Dois Sensores de Medição nível de agua do piscinão
+- Um estação metereólogica com pluviometro que vai medir a quantidade de agua por metro quadrado (mm - Essa unidade representa a altura da lâmina de água acumulada sobre uma superfície horizontal por metro quadrado)
+- Uma API publica com informações climáticas
+
+O sensores vão ser instalados em dois postes de iluminação e vão enviar os dados para um gateway que vai se integrar a um sistema de filas (MQTT) o Backend da aplicação vai consumir essas fila e gerar um dashboard com a informações de preenchimento do piscinão 
+
+Inicialmente quero definir:
+
+- Arquitetura da aplicação 
+- Desenho da Arquitetura
+- Stack tecnologico para o Front e o Back, Linguagem, Banco, Webserver, etc...
+
+Considere:
+- Que a aplicação vai rodar em um servidor LINUX UBUNTU 24.04 LTS
+- Quero utilizar Docker e NGNIX
+- Não precisa se preocupar com o sistema de filas, pode abstrair, vai ser apenas um endpoint que a aplicação vai consumir.
+- O principal é definirmos as especificações da Arquitetura e o Stack tecnológico
+- Definição das Tecnologia escolhidas, justificativa da escolha, documentação e se possivel referência bibliográfica.
+
+
+
+
+
+
