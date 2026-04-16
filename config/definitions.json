@@ -1,0 +1,108 @@
+{
+  "rabbit_version": "3.13",
+  "vhosts": [
+    { "name": "/pji510" }
+  ],
+  "users": [
+    {
+      "name": "admin",
+      "password": "2pGuJv1",
+      "tags": ["administrator"]
+    },
+    {
+      "name": "sensor_producer",
+      "password": "PJI510",
+      "tags": []
+    },
+    {
+      "name": "alerta_consumer",
+      "password": "PJI510",
+      "tags": []
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "/pji510",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "sensor_producer",
+      "vhost": "/pji510",
+      "configure": "",
+      "write": "sensores\\..*",
+      "read": ""
+    },
+    {
+      "user": "alerta_consumer",
+      "vhost": "/pji510",
+      "configure": "",
+      "write": "",
+      "read": "sensores\\..*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "sensores.exchange",
+      "vhost": "/pji510",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "sensores.dlx",
+      "vhost": "/pji510",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "sensores.leituras",
+      "vhost": "/pji510",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length": 100000,
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "sensores.dlx",
+        "x-dead-letter-routing-key": "dlq"
+      }
+    },
+    {
+      "name": "sensores.leituras.dlq",
+      "vhost": "/pji510",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length": 50000,
+        "x-message-ttl": 604800000
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "sensores.exchange",
+      "vhost": "/pji510",
+      "destination": "sensores.leituras",
+      "destination_type": "queue",
+      "routing_key": "sensor.#",
+      "arguments": {}
+    },
+    {
+      "source": "sensores.dlx",
+      "vhost": "/pji510",
+      "destination": "sensores.leituras.dlq",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    }
+  ]
+}
