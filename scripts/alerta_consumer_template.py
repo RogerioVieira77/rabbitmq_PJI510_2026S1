@@ -47,7 +47,7 @@ async def processar_leitura(dados: dict[str, Any]) -> None:
     Estrutura esperada de `dados`:
       {
         "sensor_id": "SENSOR-RES-001",
-        "tipo_sensor": "nivel_agua",   # nivel_agua | vazao | pluviometro | pressao | temperatura
+        "tipo_sensor": "nivel_agua",   # nivel_agua | pluviometro | pressao | temperatura | umidade | vento_direcao | vento_velocidade
         "valor": 3.72,
         "unidade": "metros",
         "timestamp": "2026-04-15T14:30:00Z",
@@ -58,7 +58,7 @@ async def processar_leitura(dados: dict[str, Any]) -> None:
 
     Substitua o conteúdo abaixo pela lógica real do Alerta Romano:
       - Salvar no banco de dados
-      - Avaliar regras de alerta (nível crítico, vazão anormal, etc.)
+      - Avaliar regras de alerta (nível crítico, chuva intensa, vento forte, etc.)
       - Disparar notificações quando limiares ultrapassados
     """
     logger.info(

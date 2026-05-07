@@ -42,7 +42,7 @@ class LeituraSensor(BaseModel):
     sensor_id: str = Field(..., min_length=1, max_length=100)
     tipo_sensor: str = Field(
         ...,
-        pattern=r"^(nivel_agua|vazao|pluviometro|pressao|temperatura|umidade|vento_direcao|vento_velocidade)$",
+        pattern=r"^(nivel_agua|pluviometro|pressao|temperatura|umidade|vento_direcao|vento_velocidade)$",
     )
     valor: float
     unidade: str = Field(..., min_length=1, max_length=20)

@@ -95,7 +95,7 @@
 ```json
 {
   "sensor_id": "sensor_001",
-  "tipo_sensor": "umidade",
+  "tipo_sensor": "luminosidade",
   "valor": 80,
   "unidade": "%"
 }
@@ -118,10 +118,12 @@ Lá você pode testar todos os endpoints diretamente pelo "Try it out" sem preci
 | tipo_sensor | Descrição |
 |---|---|
 | `nivel_agua` | Nível da água (m) |
-| `vazao` | Vazão (m³/s) |
-| `pluviometro` | Precipitação (mm/h) |
-| `pressao` | Pressão (kPa) |
-| `temperatura` | Temperatura (°C) |
+| `pluviometro` | Chuva acumulada (mm) |
+| `pressao` | Pressão atmosférica (hPa) |
+| `temperatura` | Temperatura do ar (C) |
+| `umidade` | Umidade relativa (%) |
+| `vento_direcao` | Direção do vento (graus) |
+| `vento_velocidade` | Velocidade do vento (km/h) |
 
 ## Campos opcionais
 

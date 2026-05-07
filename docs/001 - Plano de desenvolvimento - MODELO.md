@@ -57,12 +57,12 @@ Os sensores de monitoramento do reservatório publicam leituras periódicas na f
   "sensor_id": "SENSOR-RES-001",
   "tipo_sensor": "nivel_agua",
   "valor": 3.72,
-  "unidade": "metros",
+  "unidade": "m",
   "timestamp": "2026-04-15T14:30:00Z",
   "localizacao": {
-    "latitude": -23.5505,
-    "longitude": -46.6333,
-    "descricao": "Reservatório Norte - Ponto A"
+    "latitude": -23.477448639552904,
+    "longitude": -46.38281519942896,
+    "descricao": "Piscinao Romano - Norte"
   },
   "status": "normal",
   "bateria_pct": 87
@@ -73,11 +73,13 @@ Os sensores de monitoramento do reservatório publicam leituras periódicas na f
 
 | Tipo              | Unidade  | Descrição                                    |
 |-------------------|----------|----------------------------------------------|
-| `nivel_agua`      | metros   | Nível da água no reservatório                |
-| `vazao`           | m³/s     | Vazão de entrada/saída do reservatório       |
-| `pluviometro`     | mm/h     | Índice pluviométrico na região               |
-| `pressao`         | kPa      | Pressão na tubulação                         |
-| `temperatura`     | °C       | Temperatura da água                          |
+| `nivel_agua`      | m        | Nível da água no reservatório                |
+| `pluviometro`     | mm       | Chuva acumulada                               |
+| `pressao`         | hPa      | Pressão atmosférica                           |
+| `temperatura`     | C        | Temperatura do ar                             |
+| `umidade`         | %        | Umidade relativa do ar                        |
+| `vento_direcao`   | graus    | Direção do vento                              |
+| `vento_velocidade`| km/h     | Velocidade do vento                           |
 
 **Topologia RabbitMQ:**
 
@@ -92,8 +94,8 @@ Os sensores de monitoramento do reservatório publicam leituras periódicas na f
 
 **Exemplo de routing keys:**
 - `sensor.nivel_agua.SENSOR-RES-001`
-- `sensor.vazao.SENSOR-RES-002`
-- `sensor.pluviometro.SENSOR-RES-003`
+- `sensor.nivel_agua.SENSOR-RES-002`
+- `sensor.pluviometro.ESTACAO-MET-001`
 
 > O exchange `topic` permite que o "Alerta Romano" consuma todas as leituras (`sensor.#`) ou filtre por tipo (`sensor.nivel_agua.*`).
 

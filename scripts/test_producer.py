@@ -22,10 +22,7 @@ EXCHANGE = "sensores.exchange"
 
 SENSORES = [
     {"sensor_id": "SENSOR-RES-001", "tipo": "nivel_agua", "unidade": "metros", "min": 0.5, "max": 8.0},
-    {"sensor_id": "SENSOR-RES-002", "tipo": "vazao", "unidade": "m3/s", "min": 0.1, "max": 15.0},
-    {"sensor_id": "SENSOR-RES-003", "tipo": "pluviometro", "unidade": "mm/h", "min": 0.0, "max": 120.0},
-    {"sensor_id": "SENSOR-RES-004", "tipo": "pressao", "unidade": "kPa", "min": 80.0, "max": 250.0},
-    {"sensor_id": "SENSOR-RES-005", "tipo": "temperatura", "unidade": "C", "min": 10.0, "max": 35.0},
+    {"sensor_id": "SENSOR-RES-002", "tipo": "nivel_agua", "unidade": "metros", "min": 0.5, "max": 8.0},
 ]
 
 
@@ -37,17 +34,26 @@ def gerar_leitura(sensor: dict) -> dict:
     elif sensor["tipo"] == "pluviometro" and valor > 80.0:
         status = "alerta"
 
+    location_by_sensor = {
+        "SENSOR-RES-001": {
+            "latitude": -23.477448639552904,
+            "longitude": -46.38281519942896,
+            "descricao": "Piscinao Romano - Norte",
+        },
+        "SENSOR-RES-002": {
+            "latitude": -23.477509826705106,
+            "longitude": -46.38297628605139,
+            "descricao": "Piscinao Romano - Sul",
+        },
+    }
+
     return {
         "sensor_id": sensor["sensor_id"],
         "tipo_sensor": sensor["tipo"],
         "valor": valor,
         "unidade": sensor["unidade"],
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "localizacao": {
-            "latitude": -23.5505,
-            "longitude": -46.6333,
-            "descricao": "Reservatório Norte - Ponto A",
-        },
+        "localizacao": location_by_sensor.get(sensor["sensor_id"], {}),
         "status": status,
         "bateria_pct": random.randint(20, 100),
     }

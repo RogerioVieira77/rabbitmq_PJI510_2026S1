@@ -105,19 +105,25 @@ asyncio.run(main())
 
 ## Estrutura da mensagem recebida
 
+Contexto oficial desta integração:
+- Localidade única: Jardim Romano
+- Reservatório único: Piscinão Romano
+- Sensores de nível: SENSOR-RES-001 (Norte) e SENSOR-RES-002 (Sul)
+- Estações meteorológicas: ESTACAO-MET-001 (CEU Três Pontes) e ESTACAO-MET-002 (Piscinão Romano)
+
 Cada mensagem na fila `sensores.leituras` tem o seguinte formato JSON:
 
 ```json
 {
   "sensor_id":   "SENSOR-RES-001",
   "tipo_sensor": "nivel_agua",
-  "valor":       3.72,
-  "unidade":     "metros",
+    "valor":       3.72,
+    "unidade":     "m",
   "timestamp":   "2026-04-15T14:30:00+00:00",
   "localizacao": {
-    "latitude":  -23.5505,
-    "longitude": -46.6333,
-    "descricao": "Reservatório Norte - Ponto A"
+        "latitude":  -23.477448639552904,
+        "longitude": -46.38281519942896,
+        "descricao": "Piscinao Romano - Norte"
   },
   "status":      "normal",
   "bateria_pct": 87
@@ -128,11 +134,13 @@ Cada mensagem na fila `sensores.leituras` tem o seguinte formato JSON:
 
 | Valor          | Unidade | Descrição                          |
 |----------------|---------|------------------------------------|
-| `nivel_agua`   | metros  | Nível da água no reservatório      |
-| `vazao`        | m³/s    | Vazão de entrada/saída             |
-| `pluviometro`  | mm/h    | Índice pluviométrico na região     |
-| `pressao`      | kPa     | Pressão na tubulação               |
-| `temperatura`  | °C      | Temperatura da água                |
+| `nivel_agua`        | m     | Nível da água no reservatório                |
+| `pluviometro`       | mm    | Chuva acumulada                                 |
+| `pressao`           | hPa   | Pressão atmosférica                             |
+| `temperatura`       | C     | Temperatura do ar                               |
+| `umidade`           | %     | Umidade relativa do ar                          |
+| `vento_direcao`     | graus | Direção do vento                                |
+| `vento_velocidade`  | km/h  | Velocidade do vento                             |
 
 **Valores possíveis de `status`:** `normal` · `alerta` · `critico` · `erro`
 
