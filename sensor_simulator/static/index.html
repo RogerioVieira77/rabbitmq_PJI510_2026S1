@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PJI510 Sensor Simulator</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <h1>Simulador de Sensores PJI510</h1>
+        <p>2 sensores de nivel + 2 estacoes meteorologicas para carga na fila RabbitMQ.</p>
+      </div>
+      <div class="actions-top">
+        <button id="btn-random-all" class="btn">Randomizar Todos</button>
+        <button id="btn-send-all" class="btn btn-primary">Enviar Todos</button>
+      </div>
+    </header>
+
+    <section class="auto-panel">
+      <h2>Modo automatico</h2>
+      <div class="auto-controls">
+        <label for="interval-seconds">Intervalo (segundos)</label>
+        <input id="interval-seconds" type="number" min="1" max="3600" value="10" />
+        <button id="btn-auto-start" class="btn btn-primary">Iniciar</button>
+        <button id="btn-auto-stop" class="btn">Parar</button>
+        <span id="auto-status" class="pill">desativado</span>
+      </div>
+    </section>
+
+    <section id="sensor-grid" class="grid"></section>
+
+    <section class="logs">
+      <h2>Ultimo envio</h2>
+      <pre id="send-result">Sem envios ainda.</pre>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

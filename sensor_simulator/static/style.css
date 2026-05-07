@@ -1,0 +1,185 @@
+:root {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --text: #1c2530;
+  --muted: #617080;
+  --line: #dbe3ec;
+  --primary: #0068c9;
+  --primary-dark: #004f99;
+  --ok: #1f9254;
+  --warn: #ca8a04;
+  --err: #c23333;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: radial-gradient(circle at 20% -10%, #d8ebff, transparent 45%), var(--bg);
+  color: var(--text);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.header p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.actions-top {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: #b7c8da;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.auto-panel,
+.logs {
+  margin-top: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.auto-panel h2,
+.logs h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.auto-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.auto-controls input {
+  width: 90px;
+  padding: 7px;
+}
+
+.pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.pill.active {
+  background: #ddf5e7;
+  color: var(--ok);
+  border-color: #8fd7af;
+}
+
+.grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.card h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.card small {
+  color: var(--muted);
+}
+
+.fields {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 1fr 110px 54px;
+  gap: 8px;
+  align-items: center;
+}
+
+.field label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.field input {
+  width: 100%;
+  padding: 6px;
+}
+
+.card-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+pre {
+  background: #101827;
+  color: #d4e4ff;
+  border-radius: 10px;
+  padding: 12px;
+  overflow: auto;
+  min-height: 80px;
+}
+
+@media (max-width: 700px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .field {
+    grid-template-columns: 1fr 90px 46px;
+  }
+}

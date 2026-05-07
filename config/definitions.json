@@ -3,23 +3,7 @@
   "vhosts": [
     { "name": "/pji510" }
   ],
-  "users": [
-    {
-      "name": "admin",
-      "password": "2pGuJv1",
-      "tags": ["administrator"]
-    },
-    {
-      "name": "sensor_producer",
-      "password": "PJI510",
-      "tags": []
-    },
-    {
-      "name": "alerta_consumer",
-      "password": "PJI510",
-      "tags": []
-    }
-  ],
+  "users": [],
   "permissions": [
     {
       "user": "admin",

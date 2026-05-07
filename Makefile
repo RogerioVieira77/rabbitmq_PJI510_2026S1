@@ -37,13 +37,17 @@ health: ## Verifica saúde do broker
 	@docker exec $(APP_NAME) rabbitmq-diagnostics check_running -q && echo "OK: Broker running" || echo "FAIL: Broker not running"
 	@docker exec $(APP_NAME) rabbitmq-diagnostics check_port_connectivity -q && echo "OK: Ports OK" || echo "FAIL: Port issues"
 
-setup-users: ## Cria usuários producer e consumer via rabbitmqctl
-	@echo "==> Criando usuário sensor_producer..."
-	@docker exec $(APP_NAME) rabbitmqctl add_user sensor_producer $$(grep SENSOR_PRODUCER_PASS .env 2>/dev/null | cut -d= -f2 || echo "sensor_pass_temp") 2>/dev/null || true
-	@docker exec $(APP_NAME) rabbitmqctl set_permissions -p /pji510 sensor_producer "" "sensores\..*" "" 2>/dev/null || true
-	@echo "==> Criando usuário alerta_consumer..."
-	@docker exec $(APP_NAME) rabbitmqctl add_user alerta_consumer $$(grep ALERTA_CONSUMER_PASS .env 2>/dev/null | cut -d= -f2 || echo "consumer_pass_temp") 2>/dev/null || true
-	@docker exec $(APP_NAME) rabbitmqctl set_permissions -p /pji510 alerta_consumer "" "" "sensores\..*" 2>/dev/null || true
+setup-users: ## Cria (ou atualiza senha de) usuários producer e consumer via rabbitmqctl
+	@echo "==> Configurando usuário sensor_producer..."
+	@SENSOR_PASS=$$(grep '^SENSOR_PRODUCER_PASS=' .env | cut -d= -f2-) && \
+	  docker exec $(APP_NAME) rabbitmqctl add_user sensor_producer "$$SENSOR_PASS" 2>/dev/null || \
+	  docker exec $(APP_NAME) rabbitmqctl change_password sensor_producer "$$SENSOR_PASS" && \
+	  docker exec $(APP_NAME) rabbitmqctl set_permissions -p /pji510 sensor_producer "" "sensores\..*" ""
+	@echo "==> Configurando usuário alerta_consumer..."
+	@CONSUMER_PASS=$$(grep '^ALERTA_CONSUMER_PASS=' .env | cut -d= -f2-) && \
+	  docker exec $(APP_NAME) rabbitmqctl add_user alerta_consumer "$$CONSUMER_PASS" 2>/dev/null || \
+	  docker exec $(APP_NAME) rabbitmqctl change_password alerta_consumer "$$CONSUMER_PASS" && \
+	  docker exec $(APP_NAME) rabbitmqctl set_permissions -p /pji510 alerta_consumer "" "" "sensores\..*"
 	@echo "==> Usuários configurados."
 
 test-producer: ## Executa o script de teste do producer

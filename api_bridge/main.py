@@ -6,14 +6,15 @@ Fase 1: Fila aberta — qualquer sensor com o endereço consegue publicar.
 Fase 2 (futura): Autenticação por token/API key para sensores registrados.
 """
 
-import json
+import asyncio
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Optional
 
-import pika
+import aio_pika
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -27,6 +28,8 @@ RABBITMQ_VHOST = os.getenv("RABBITMQ_VHOST", "/pji510")
 RABBITMQ_USER = os.getenv("RABBITMQ_USER", "sensor_producer")
 RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "")
 EXCHANGE_NAME = os.getenv("EXCHANGE_NAME", "sensores.exchange")
+STARTUP_RETRIES = int(os.getenv("STARTUP_RETRIES", "5"))
+STARTUP_RETRY_DELAY = float(os.getenv("STARTUP_RETRY_DELAY", "3"))
 
 # --- Modelos ---
 class Localizacao(BaseModel):
@@ -37,7 +40,10 @@ class Localizacao(BaseModel):
 
 class LeituraSensor(BaseModel):
     sensor_id: str = Field(..., min_length=1, max_length=100)
-    tipo_sensor: str = Field(..., pattern=r"^(nivel_agua|vazao|pluviometro|pressao|temperatura)$")
+    tipo_sensor: str = Field(
+        ...,
+        pattern=r"^(nivel_agua|vazao|pluviometro|pressao|temperatura|umidade|vento_direcao|vento_velocidade)$",
+    )
     valor: float
     unidade: str = Field(..., min_length=1, max_length=20)
     timestamp: Optional[str] = None
@@ -52,50 +58,69 @@ class PublishResponse(BaseModel):
     routing_key: str
 
 
-# --- Conexão RabbitMQ ---
-_connection: Optional[pika.BlockingConnection] = None
-_channel = None
+# --- Conexão RabbitMQ (robust = reconexão automática) ---
+_connection: Optional[aio_pika.abc.AbstractRobustConnection] = None
 
 
-def get_channel():
-    global _connection, _channel
+async def _publish_messages(messages: list[tuple[str, bytes]]) -> None:
+    """Publica uma lista de (routing_key, body) usando um único canal."""
     if _connection is None or _connection.is_closed:
-        credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-        params = pika.ConnectionParameters(
-            host=RABBITMQ_HOST,
-            port=RABBITMQ_PORT,
-            virtual_host=RABBITMQ_VHOST,
-            credentials=credentials,
-            heartbeat=600,
-            blocked_connection_timeout=300,
-        )
-        _connection = pika.BlockingConnection(params)
-        _channel = _connection.channel()
-        logger.info("Conexão AMQP estabelecida com %s:%s%s", RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_VHOST)
-    if _channel is None or _channel.is_closed:
-        _channel = _connection.channel()
-    return _channel
-
-
-def close_connection():
-    global _connection, _channel
-    if _connection and not _connection.is_closed:
-        _connection.close()
-        logger.info("Conexão AMQP fechada")
-    _connection = None
-    _channel = None
+        raise RuntimeError("Sem conexão AMQP disponível")
+    channel = await _connection.channel()
+    try:
+        exchange = await channel.get_exchange(EXCHANGE_NAME, ensure=False)
+        for routing_key, body in messages:
+            await exchange.publish(
+                aio_pika.Message(
+                    body=body,
+                    delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                    content_type="application/json",
+                ),
+                routing_key=routing_key,
+            )
+    finally:
+        await channel.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _connection
     logger.info("API Bridge iniciando...")
-    try:
-        get_channel()
-        logger.info("Conexão AMQP pronta")
-    except Exception as e:
-        logger.warning("Não foi possível conectar ao RabbitMQ no startup: %s", e)
+
+    last_error: Optional[Exception] = None
+    for attempt in range(1, STARTUP_RETRIES + 1):
+        try:
+            _connection = await aio_pika.connect_robust(
+                host=RABBITMQ_HOST,
+                port=RABBITMQ_PORT,
+                virtualhost=RABBITMQ_VHOST,
+                login=RABBITMQ_USER,
+                password=RABBITMQ_PASS,
+            )
+            logger.info(
+                "Conexão AMQP estabelecida com %s:%d%s",
+                RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_VHOST,
+            )
+            break
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "Tentativa %d/%d de conectar ao RabbitMQ falhou: %s",
+                attempt, STARTUP_RETRIES, exc,
+            )
+            if attempt < STARTUP_RETRIES:
+                await asyncio.sleep(STARTUP_RETRY_DELAY)
+    else:
+        logger.error(
+            "Não foi possível conectar ao RabbitMQ após %d tentativas: %s",
+            STARTUP_RETRIES, last_error,
+        )
+        sys.exit(1)
+
     yield
-    close_connection()
+
+    if _connection and not _connection.is_closed:
+        await _connection.close()
     logger.info("API Bridge encerrada")
 
 
@@ -103,24 +128,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Sensores API Bridge",
     description="API HTTP para publicação de leituras de sensores no RabbitMQ",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
 
 @app.get("/health")
-def health():
-    try:
-        ch = get_channel()
-        if ch.is_open:
-            return {"status": "healthy", "broker": "connected"}
-    except Exception:
-        pass
+async def health():
+    if _connection and not _connection.is_closed:
+        return {"status": "healthy", "broker": "connected"}
     return {"status": "degraded", "broker": "disconnected"}
 
 
 @app.post("/api/v1/leituras", response_model=PublishResponse, status_code=status.HTTP_201_CREATED)
-def publicar_leitura(leitura: LeituraSensor):
+async def publicar_leitura(leitura: LeituraSensor):
     """
     Publica uma leitura de sensor na fila RabbitMQ.
 
@@ -130,22 +151,11 @@ def publicar_leitura(leitura: LeituraSensor):
         leitura.timestamp = datetime.now(timezone.utc).isoformat()
 
     routing_key = f"sensor.{leitura.tipo_sensor}.{leitura.sensor_id}"
-    body = leitura.model_dump_json()
 
     try:
-        channel = get_channel()
-        channel.basic_publish(
-            exchange=EXCHANGE_NAME,
-            routing_key=routing_key,
-            body=body,
-            properties=pika.BasicProperties(
-                delivery_mode=2,  # persistente
-                content_type="application/json",
-            ),
-        )
-    except Exception as e:
-        logger.error("Erro ao publicar: %s", e)
-        close_connection()
+        await _publish_messages([(routing_key, leitura.model_dump_json().encode())])
+    except Exception as exc:
+        logger.error("Erro ao publicar: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Broker indisponível. Tente novamente.",
@@ -156,7 +166,7 @@ def publicar_leitura(leitura: LeituraSensor):
 
 
 @app.post("/api/v1/leituras/batch", status_code=status.HTTP_201_CREATED)
-def publicar_leituras_batch(leituras: list[LeituraSensor]):
+async def publicar_leituras_batch(leituras: list[LeituraSensor]):
     """
     Publica múltiplas leituras de uma vez (batch).
     Limite: 100 leituras por request.
@@ -167,30 +177,24 @@ def publicar_leituras_batch(leituras: list[LeituraSensor]):
             detail="Máximo 100 leituras por batch",
         )
 
-    resultados = []
+    for leitura in leituras:
+        if not leitura.timestamp:
+            leitura.timestamp = datetime.now(timezone.utc).isoformat()
+
+    messages = [
+        (f"sensor.{l.tipo_sensor}.{l.sensor_id}", l.model_dump_json().encode())
+        for l in leituras
+    ]
+
     try:
-        channel = get_channel()
-        for leitura in leituras:
-            if not leitura.timestamp:
-                leitura.timestamp = datetime.now(timezone.utc).isoformat()
-            routing_key = f"sensor.{leitura.tipo_sensor}.{leitura.sensor_id}"
-            channel.basic_publish(
-                exchange=EXCHANGE_NAME,
-                routing_key=routing_key,
-                body=leitura.model_dump_json(),
-                properties=pika.BasicProperties(
-                    delivery_mode=2,
-                    content_type="application/json",
-                ),
-            )
-            resultados.append({"routing_key": routing_key, "ok": True})
-    except Exception as e:
-        logger.error("Erro ao publicar batch: %s", e)
-        close_connection()
+        await _publish_messages(messages)
+    except Exception as exc:
+        logger.error("Erro ao publicar batch: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Broker indisponível. Tente novamente.",
         )
 
+    resultados = [{"routing_key": rk, "ok": True} for rk, _ in messages]
     logger.info("Batch publicado: %d leituras", len(resultados))
     return {"ok": True, "total": len(resultados), "leituras": resultados}
