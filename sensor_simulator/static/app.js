@@ -25,6 +25,13 @@ function updateResult(data) {
   resultBox.textContent = fmtJson(data);
 }
 
+async function updateSensorFields(sensorId, fields) {
+  return api("/api/sensors/update", {
+    method: "POST",
+    body: JSON.stringify({ sensor_id: sensorId, fields }),
+  });
+}
+
 function toLabel(fieldName) {
   const map = {
     nivel_agua: "Nivel de agua",
@@ -68,6 +75,133 @@ function renderSensors() {
     const sub = document.createElement("small");
     sub.textContent = `${sensor.sensor_id} • ${sensor.kind === "water" ? "Nivel" : "Meteorologica"}`;
 
+    const statusBadge = document.createElement("span");
+    statusBadge.className = `sensor-state ${sensor.ativo ? "on" : "off"}`;
+    statusBadge.textContent = sensor.ativo ? "Ligado" : "Desligado";
+
+    if (!sensor.ativo) {
+      card.classList.add("card-off");
+    }
+
+    const opsWrap = document.createElement("div");
+    opsWrap.className = "ops";
+
+    const activeRow = document.createElement("div");
+    activeRow.className = "field";
+    const activeLabel = document.createElement("label");
+    activeLabel.textContent = "Estado";
+    const activeSelect = document.createElement("select");
+    [
+      { value: "ligado", label: "Ligado" },
+      { value: "desligado", label: "Desligado" },
+    ].forEach((opt) => {
+      const option = document.createElement("option");
+      option.value = opt.value;
+      option.textContent = opt.label;
+      activeSelect.appendChild(option);
+    });
+    activeSelect.value = sensor.ativo ? "ligado" : "desligado";
+    activeSelect.addEventListener("change", async () => {
+      try {
+        await updateSensorFields(sensor.sensor_id, { ativo: activeSelect.value === "ligado" });
+        await refreshSensors();
+      } catch (error) {
+        updateResult({ ok: false, error: error.message });
+        await refreshSensors();
+      }
+    });
+    const activeInfo = document.createElement("small");
+    activeInfo.textContent = "envio";
+    activeRow.appendChild(activeLabel);
+    activeRow.appendChild(activeSelect);
+    activeRow.appendChild(activeInfo);
+    opsWrap.appendChild(activeRow);
+
+    const sourceRow = document.createElement("div");
+    sourceRow.className = "field";
+    const sourceLabel = document.createElement("label");
+    sourceLabel.textContent = "Alimentacao";
+    const sourceSelect = document.createElement("select");
+    [
+      { value: "rede", label: "Rede eletrica" },
+      { value: "bateria", label: "Bateria emergencia" },
+    ].forEach((opt) => {
+      const option = document.createElement("option");
+      option.value = opt.value;
+      option.textContent = opt.label;
+      sourceSelect.appendChild(option);
+    });
+    sourceSelect.value = sensor.fonte_alimentacao;
+    sourceSelect.addEventListener("change", async () => {
+      try {
+        await updateSensorFields(sensor.sensor_id, { fonte_alimentacao: sourceSelect.value });
+        await refreshSensors();
+      } catch (error) {
+        updateResult({ ok: false, error: error.message });
+        await refreshSensors();
+      }
+    });
+    const sourceInfo = document.createElement("small");
+    sourceInfo.textContent = sensor.fonte_alimentacao;
+    sourceRow.appendChild(sourceLabel);
+    sourceRow.appendChild(sourceSelect);
+    sourceRow.appendChild(sourceInfo);
+    opsWrap.appendChild(sourceRow);
+
+    const batteryRow = document.createElement("div");
+    batteryRow.className = "field";
+    const batteryLabel = document.createElement("label");
+    batteryLabel.textContent = "Bateria";
+    const batteryInput = document.createElement("input");
+    batteryInput.type = "number";
+    batteryInput.min = 0;
+    batteryInput.max = 100;
+    batteryInput.step = 1;
+    batteryInput.value = sensor.bateria_pct;
+    batteryInput.addEventListener("change", async () => {
+      try {
+        await updateSensorFields(sensor.sensor_id, { bateria_pct: Number(batteryInput.value) });
+        await refreshSensors();
+      } catch (error) {
+        updateResult({ ok: false, error: error.message });
+        await refreshSensors();
+      }
+    });
+    const batteryInfo = document.createElement("small");
+    batteryInfo.textContent = "%";
+    batteryRow.appendChild(batteryLabel);
+    batteryRow.appendChild(batteryInput);
+    batteryRow.appendChild(batteryInfo);
+    opsWrap.appendChild(batteryRow);
+
+    const bmsRow = document.createElement("div");
+    bmsRow.className = "field";
+    const bmsLabel = document.createElement("label");
+    bmsLabel.textContent = "BMS";
+    const bmsSelect = document.createElement("select");
+    ["normal", "alerta", "critico"].forEach((level) => {
+      const option = document.createElement("option");
+      option.value = level;
+      option.textContent = level;
+      bmsSelect.appendChild(option);
+    });
+    bmsSelect.value = sensor.bms_nivel;
+    bmsSelect.addEventListener("change", async () => {
+      try {
+        await updateSensorFields(sensor.sensor_id, { bms_nivel: bmsSelect.value });
+        await refreshSensors();
+      } catch (error) {
+        updateResult({ ok: false, error: error.message });
+        await refreshSensors();
+      }
+    });
+    const bmsInfo = document.createElement("small");
+    bmsInfo.textContent = "nivel";
+    bmsRow.appendChild(bmsLabel);
+    bmsRow.appendChild(bmsSelect);
+    bmsRow.appendChild(bmsInfo);
+    opsWrap.appendChild(bmsRow);
+
     const fieldsWrap = document.createElement("div");
     fieldsWrap.className = "fields";
 
@@ -90,14 +224,7 @@ function renderSensors() {
 
       input.addEventListener("change", async () => {
         try {
-          const payload = {
-            sensor_id: sensor.sensor_id,
-            fields: { [field]: Number(input.value) },
-          };
-          await api("/api/sensors/update", {
-            method: "POST",
-            body: JSON.stringify(payload),
-          });
+          await updateSensorFields(sensor.sensor_id, { [field]: Number(input.value) });
           await refreshSensors();
         } catch (error) {
           updateResult({ ok: false, error: error.message });
@@ -135,6 +262,7 @@ function renderSensors() {
     const btnSend = document.createElement("button");
     btnSend.className = "btn btn-primary";
     btnSend.textContent = "Enviar";
+    btnSend.disabled = !sensor.ativo;
     btnSend.addEventListener("click", async () => {
       try {
         const data = await api("/api/sensors/send", {
@@ -152,6 +280,8 @@ function renderSensors() {
 
     card.appendChild(title);
     card.appendChild(sub);
+    card.appendChild(statusBadge);
+    card.appendChild(opsWrap);
     card.appendChild(fieldsWrap);
     card.appendChild(actions);
     grid.appendChild(card);

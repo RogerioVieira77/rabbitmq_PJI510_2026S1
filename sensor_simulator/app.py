@@ -19,6 +19,10 @@ SENSOR_STATE: dict[str, dict[str, Any]] = {
         "sensor_id": "SENSOR-RES-001",
         "kind": "water",
         "label": "Sensor de Nivel 1 (Piscinao - Norte)",
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bateria_pct": 96,
+        "bms_nivel": "normal",
         "values": {"nivel_agua": 2.35},
         "ranges": {"nivel_agua": {"min": 0.0, "max": 8.0, "step": 0.01}},
         "units": {"nivel_agua": "m"},
@@ -32,6 +36,10 @@ SENSOR_STATE: dict[str, dict[str, Any]] = {
         "sensor_id": "SENSOR-RES-002",
         "kind": "water",
         "label": "Sensor de Nivel 2 (Piscinao - Sul)",
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bateria_pct": 94,
+        "bms_nivel": "normal",
         "values": {"nivel_agua": 2.72},
         "ranges": {"nivel_agua": {"min": 0.0, "max": 8.0, "step": 0.01}},
         "units": {"nivel_agua": "m"},
@@ -45,6 +53,10 @@ SENSOR_STATE: dict[str, dict[str, Any]] = {
         "sensor_id": "ESTACAO-MET-001",
         "kind": "weather",
         "label": "Estacao Meteorologica 1 (CEU Tres Pontes)",
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bateria_pct": 92,
+        "bms_nivel": "normal",
         "values": {
             "vento_direcao": 180,
             "vento_velocidade": 12.0,
@@ -79,6 +91,10 @@ SENSOR_STATE: dict[str, dict[str, Any]] = {
         "sensor_id": "ESTACAO-MET-002",
         "kind": "weather",
         "label": "Estacao Meteorologica 2 (Piscinao Romano)",
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bateria_pct": 90,
+        "bms_nivel": "normal",
         "values": {
             "vento_direcao": 122,
             "vento_velocidade": 9.2,
@@ -120,7 +136,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class UpdateSensorRequest(BaseModel):
     sensor_id: str
-    fields: dict[str, float]
+    fields: dict[str, Any]
 
 
 class RandomizeRequest(BaseModel):
@@ -139,6 +155,14 @@ def _safe_state() -> dict[str, dict[str, Any]]:
     return SENSOR_STATE
 
 
+def _bms_from_battery_pct(bateria_pct: int) -> str:
+    if bateria_pct <= 15:
+        return "critico"
+    if bateria_pct <= 30:
+        return "alerta"
+    return "normal"
+
+
 def _clamp(field_name: str, value: float, sensor: dict[str, Any]) -> float:
     field_range = sensor["ranges"].get(field_name)
     if field_range is None:
@@ -152,6 +176,12 @@ def _clamp(field_name: str, value: float, sensor: dict[str, Any]) -> float:
 
 
 def _randomize_sensor(sensor: dict[str, Any]) -> None:
+    if sensor["fonte_alimentacao"] == "bateria":
+        sensor["bateria_pct"] = max(0, int(sensor["bateria_pct"]) - random.randint(1, 8))
+    else:
+        sensor["bateria_pct"] = min(100, int(sensor["bateria_pct"]) + random.randint(0, 2))
+    sensor["bms_nivel"] = _bms_from_battery_pct(int(sensor["bateria_pct"]))
+
     if sensor["kind"] == "water":
         sensor["values"]["nivel_agua"] = round(random.uniform(0.0, 8.0), 2)
         return
@@ -219,7 +249,10 @@ def _build_payloads(sensor: dict[str, Any]) -> list[dict[str, Any]]:
                 "unidade": "m",
                 "status": _status_for("nivel_agua", value),
                 "localizacao": location,
-                "bateria_pct": random.randint(30, 100),
+                "bateria_pct": int(sensor["bateria_pct"]),
+                "ativo": bool(sensor["ativo"]),
+                "fonte_alimentacao": sensor["fonte_alimentacao"],
+                "bms_nivel": sensor["bms_nivel"],
             }
         ]
 
@@ -241,7 +274,10 @@ def _build_payloads(sensor: dict[str, Any]) -> list[dict[str, Any]]:
                 "unidade": sensor["units"][tipo_sensor],
                 "status": _status_for(tipo_sensor, value),
                 "localizacao": location,
-                "bateria_pct": random.randint(30, 100),
+                "bateria_pct": int(sensor["bateria_pct"]),
+                "ativo": bool(sensor["ativo"]),
+                "fonte_alimentacao": sensor["fonte_alimentacao"],
+                "bms_nivel": sensor["bms_nivel"],
             }
         )
     return payloads
@@ -266,6 +302,20 @@ async def _send_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _send_sensor(sensor: dict[str, Any]) -> list[dict[str, Any]]:
+    if not bool(sensor.get("ativo", True)):
+        return [
+            {
+                "sensor_id": sensor["sensor_id"],
+                "tipo_sensor": "*",
+                "status_code": 409,
+                "ok": False,
+                "response": {
+                    "ok": False,
+                    "message": "Sensor desligado. Envio bloqueado.",
+                },
+            }
+        ]
+
     payloads = _build_payloads(sensor)
     tasks = [_send_payload(payload) for payload in payloads]
     return await asyncio.gather(*tasks)
@@ -318,9 +368,39 @@ async def update_sensor(body: UpdateSensorRequest) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Sensor nao encontrado")
 
     for field_name, value in body.fields.items():
-        if field_name not in sensor["values"]:
-            raise HTTPException(status_code=400, detail=f"Campo invalido: {field_name}")
-        sensor["values"][field_name] = _clamp(field_name, float(value), sensor)
+        if field_name in sensor["values"]:
+            sensor["values"][field_name] = _clamp(field_name, float(value), sensor)
+            continue
+
+        if field_name == "ativo":
+            sensor["ativo"] = bool(value)
+            continue
+
+        if field_name == "fonte_alimentacao":
+            if value not in ("rede", "bateria"):
+                raise HTTPException(status_code=400, detail="fonte_alimentacao deve ser 'rede' ou 'bateria'")
+            sensor["fonte_alimentacao"] = value
+            if value == "rede":
+                sensor["bms_nivel"] = "normal"
+            else:
+                sensor["bms_nivel"] = _bms_from_battery_pct(int(sensor["bateria_pct"]))
+            continue
+
+        if field_name == "bateria_pct":
+            pct = int(value)
+            if pct < 0 or pct > 100:
+                raise HTTPException(status_code=400, detail="bateria_pct deve estar entre 0 e 100")
+            sensor["bateria_pct"] = pct
+            sensor["bms_nivel"] = _bms_from_battery_pct(pct)
+            continue
+
+        if field_name == "bms_nivel":
+            if value not in ("normal", "alerta", "critico"):
+                raise HTTPException(status_code=400, detail="bms_nivel deve ser normal, alerta ou critico")
+            sensor["bms_nivel"] = value
+            continue
+
+        raise HTTPException(status_code=400, detail=f"Campo invalido: {field_name}")
 
     return {"ok": True, "sensor": sensor}
 

@@ -73,6 +73,12 @@ body {
   background: var(--primary-dark);
 }
 
+.btn:disabled,
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .auto-panel,
 .logs {
   margin-top: 18px;
@@ -127,6 +133,11 @@ body {
   padding: 14px;
 }
 
+.card-off {
+  border-color: #f2b8b8;
+  background: #fff7f7;
+}
+
 .card h3 {
   margin: 0 0 4px;
   font-size: 18px;
@@ -142,6 +153,34 @@ body {
   gap: 8px;
 }
 
+.ops {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.sensor-state {
+  display: inline-block;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+
+.sensor-state.on {
+  color: var(--ok);
+  background: #ddf5e7;
+  border-color: #8fd7af;
+}
+
+.sensor-state.off {
+  color: var(--err);
+  background: #fde7e7;
+  border-color: #f2b8b8;
+}
+
 .field {
   display: grid;
   grid-template-columns: 1fr 110px 54px;
@@ -155,6 +194,11 @@ body {
 }
 
 .field input {
+  width: 100%;
+  padding: 6px;
+}
+
+.field select {
   width: 100%;
   padding: 6px;
 }

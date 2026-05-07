@@ -126,7 +126,10 @@ Cada mensagem na fila `sensores.leituras` tem o seguinte formato JSON:
         "descricao": "Piscinao Romano - Norte"
   },
   "status":      "normal",
-  "bateria_pct": 87
+    "bateria_pct": 87,
+    "ativo": true,
+    "fonte_alimentacao": "rede",
+    "bms_nivel": "normal"
 }
 ```
 
@@ -143,6 +146,14 @@ Cada mensagem na fila `sensores.leituras` tem o seguinte formato JSON:
 | `vento_velocidade`  | km/h  | Velocidade do vento                             |
 
 **Valores possíveis de `status`:** `normal` · `alerta` · `critico` · `erro`
+
+**Campos operacionais adicionais:**
+
+| Campo | Tipo | Valores | Observacao |
+|---|---|---|---|
+| `ativo` | boolean | `true` / `false` | Quando `false`, o simulador bloqueia envio daquele sensor |
+| `fonte_alimentacao` | string | `rede` / `bateria` | Fonte energetica atual do dispositivo |
+| `bms_nivel` | string | `normal` / `alerta` / `critico` | Nivel de aviso do BMS da bateria |
 
 **Routing key da mensagem:** `sensor.<tipo_sensor>.<sensor_id>`  
 Exemplo: `sensor.nivel_agua.SENSOR-RES-001`

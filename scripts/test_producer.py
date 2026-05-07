@@ -56,6 +56,9 @@ def gerar_leitura(sensor: dict) -> dict:
         "localizacao": location_by_sensor.get(sensor["sensor_id"], {}),
         "status": status,
         "bateria_pct": random.randint(20, 100),
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bms_nivel": "normal",
     }
 
 

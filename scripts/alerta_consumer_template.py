@@ -53,7 +53,10 @@ async def processar_leitura(dados: dict[str, Any]) -> None:
         "timestamp": "2026-04-15T14:30:00Z",
         "localizacao": {"latitude": ..., "longitude": ..., "descricao": "..."},
         "status": "normal",            # normal | alerta | critico | erro
-        "bateria_pct": 87
+        "bateria_pct": 87,
+        "ativo": true,                   # true | false
+        "fonte_alimentacao": "rede",   # rede | bateria
+        "bms_nivel": "normal"          # normal | alerta | critico
       }
 
     Substitua o conteúdo abaixo pela lógica real do Alerta Romano:
@@ -62,12 +65,15 @@ async def processar_leitura(dados: dict[str, Any]) -> None:
       - Disparar notificações quando limiares ultrapassados
     """
     logger.info(
-        "[%s] %s = %s %s (status: %s)",
+      "[%s] %s = %s %s (status: %s, ativo: %s, fonte: %s, bms: %s)",
         dados.get("sensor_id"),
         dados.get("tipo_sensor"),
         dados.get("valor"),
         dados.get("unidade"),
         dados.get("status"),
+      dados.get("ativo"),
+      dados.get("fonte_alimentacao"),
+      dados.get("bms_nivel"),
     )
 
     # TODO: implementar lógica do Alerta Romano aqui

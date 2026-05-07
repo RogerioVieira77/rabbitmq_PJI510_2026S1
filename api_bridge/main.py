@@ -50,6 +50,9 @@ class LeituraSensor(BaseModel):
     localizacao: Optional[Localizacao] = None
     status: Optional[str] = Field(default="normal", pattern=r"^(normal|alerta|critico|erro)$")
     bateria_pct: Optional[int] = Field(default=None, ge=0, le=100)
+    ativo: Optional[bool] = True
+    fonte_alimentacao: Optional[str] = Field(default="rede", pattern=r"^(rede|bateria)$")
+    bms_nivel: Optional[str] = Field(default="normal", pattern=r"^(normal|alerta|critico)$")
 
 
 class PublishResponse(BaseModel):
