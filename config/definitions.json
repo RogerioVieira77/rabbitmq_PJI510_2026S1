@@ -25,6 +25,13 @@
       "configure": "",
       "write": "",
       "read": "sensores\\..*"
+    },
+    {
+      "user": "simulador_app",
+      "vhost": "/pji510",
+      "configure": "",
+      "write": "previsoes\\..*|defesa\\..*",
+      "read": ""
     }
   ],
   "exchanges": [
@@ -39,6 +46,42 @@
     },
     {
       "name": "sensores.dlx",
+      "vhost": "/pji510",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "previsoes.exchange",
+      "vhost": "/pji510",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "previsoes.dlx",
+      "vhost": "/pji510",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "defesa.exchange",
+      "vhost": "/pji510",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "defesa.dlx",
       "vhost": "/pji510",
       "type": "fanout",
       "durable": true,
@@ -69,6 +112,62 @@
         "x-max-length": 50000,
         "x-message-ttl": 604800000
       }
+    },
+    {
+      "name": "previsoes.fila",
+      "vhost": "/pji510",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length": 100000,
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "previsoes.dlx",
+        "x-dead-letter-routing-key": "dlq"
+      }
+    },
+    {
+      "name": "previsoes.fila.dlq",
+      "vhost": "/pji510",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length": 50000,
+        "x-message-ttl": 604800000
+      }
+    },
+    {
+      "name": "defesa.situacao.fila",
+      "vhost": "/pji510",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length": 100000,
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "defesa.dlx",
+        "x-dead-letter-routing-key": "dlq"
+      }
+    },
+    {
+      "name": "defesa.alertas.fila",
+      "vhost": "/pji510",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length": 100000,
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "defesa.dlx",
+        "x-dead-letter-routing-key": "dlq"
+      }
+    },
+    {
+      "name": "defesa.dlq",
+      "vhost": "/pji510",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length": 50000,
+        "x-message-ttl": 604800000
+      }
     }
   ],
   "bindings": [
@@ -84,6 +183,46 @@
       "source": "sensores.dlx",
       "vhost": "/pji510",
       "destination": "sensores.leituras.dlq",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    },
+    {
+      "source": "previsoes.exchange",
+      "vhost": "/pji510",
+      "destination": "previsoes.fila",
+      "destination_type": "queue",
+      "routing_key": "previsao.#",
+      "arguments": {}
+    },
+    {
+      "source": "previsoes.dlx",
+      "vhost": "/pji510",
+      "destination": "previsoes.fila.dlq",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    },
+    {
+      "source": "defesa.exchange",
+      "vhost": "/pji510",
+      "destination": "defesa.situacao.fila",
+      "destination_type": "queue",
+      "routing_key": "situacao.#",
+      "arguments": {}
+    },
+    {
+      "source": "defesa.exchange",
+      "vhost": "/pji510",
+      "destination": "defesa.alertas.fila",
+      "destination_type": "queue",
+      "routing_key": "alerta.#",
+      "arguments": {}
+    },
+    {
+      "source": "defesa.dlx",
+      "vhost": "/pji510",
+      "destination": "defesa.dlq",
       "destination_type": "queue",
       "routing_key": "",
       "arguments": {}

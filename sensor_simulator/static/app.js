@@ -25,6 +25,65 @@ function updateResult(data) {
   resultBox.textContent = fmtJson(data);
 }
 
+// --- Tab Navigation ---
+function setupTabs() {
+  const tabButtons = document.querySelectorAll(".tab-button");
+  const tabContents = document.querySelectorAll(".tab-content");
+
+  tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const tabName = button.getAttribute("data-tab");
+
+      // Deactivate all
+      tabButtons.forEach((btn) => btn.classList.remove("active"));
+      tabContents.forEach((content) => content.classList.remove("active"));
+
+      // Activate selected
+      button.classList.add("active");
+      document.getElementById(`tab-${tabName}`)?.classList.add("active");
+    });
+  });
+}
+
+function updateResultBox(tabId, data) {
+  const resultBox = document.getElementById(tabId);
+  if (resultBox) {
+    resultBox.textContent = fmtJson(data);
+  }
+}
+
+// --- Dynamic Alerta Items ---
+function addAlertaItem(container, values = {}) {
+  const alertaNum = container.children.length + 1;
+  const item = document.createElement("div");
+  item.className = "alerta-item";
+  item.innerHTML = `
+    <h4 style="margin: 0 0 12px; font-size: 14px;">Alerta #${alertaNum}</h4>
+    <div class="form-group">
+      <label>Região:</label>
+      <input type="text" class="alerta-regiao" value="${values.regiao || ""}" placeholder="Ex: Zona Norte" />
+    </div>
+    <div class="form-group">
+      <label>Descrição:</label>
+      <input type="text" class="alerta-descricao" value="${values.descricao || ""}" placeholder="Ex: Risco de alagamento" />
+    </div>
+    <div class="form-group">
+      <label>Severidade:</label>
+      <select class="alerta-severidade">
+        <option value="normal" ${values.severidade === "normal" ? "selected" : ""}>Normal</option>
+        <option value="atencao" ${values.severidade === "atencao" ? "selected" : ""}>Atenção</option>
+        <option value="critico" ${values.severidade === "critico" ? "selected" : ""}>Crítico</option>
+      </select>
+    </div>
+    <button type="button" class="btn btn-remove">Remover Alerta</button>
+  `;
+
+  const removeBtn = item.querySelector(".btn-remove");
+  removeBtn.addEventListener("click", () => item.remove());
+
+  container.appendChild(item);
+}
+
 async function updateSensorFields(sensorId, fields) {
   return api("/api/sensors/update", {
     method: "POST",
@@ -337,8 +396,102 @@ document.getElementById("btn-auto-stop").addEventListener("click", async () => {
   }
 });
 
+// --- Form Handlers for Simulations ---
+
+// Previsão de Chuva
+document.getElementById("form-previsao")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const payload = {
+    regiao: formData.get("regiao") || "Jardim Romano",
+    nivel: parseInt(formData.get("nivel")),
+    descricao: formData.get("descricao"),
+    precipitacao_mm: parseFloat(formData.get("precipitacao_mm")),
+  };
+
+  try {
+    const data = await api("/api/previsoes", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    updateResultBox("previsao-result", data);
+  } catch (error) {
+    updateResultBox("previsao-result", { ok: false, error: error.message });
+  }
+});
+
+// Situação Defesa Civil
+document.getElementById("btn-add-alerta")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  const container = document.getElementById("alertas-list");
+  const maxAlertas = 5;
+  if (container.children.length < maxAlertas) {
+    addAlertaItem(container);
+  } else {
+    alert("Máximo de 5 alertas atingido");
+  }
+});
+
+document.getElementById("form-defesa-civil")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+
+  const alertasContainer = document.getElementById("alertas-list");
+  const alertasItems = alertasContainer.querySelectorAll(".alerta-item");
+  const alertas_ativos = Array.from(alertasItems).map((item) => ({
+    regiao: item.querySelector(".alerta-regiao").value,
+    descricao: item.querySelector(".alerta-descricao").value,
+    severidade: item.querySelector(".alerta-severidade").value,
+  }));
+
+  const payload = {
+    status: formData.get("status"),
+    alertas_ativos,
+  };
+
+  try {
+    const data = await api("/api/defesa-civil", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    updateResultBox("defesa-civil-result", data);
+  } catch (error) {
+    updateResultBox("defesa-civil-result", { ok: false, error: error.message });
+  }
+});
+
+// Alertas Defesa Civil
+document.getElementById("form-alertas")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const payload = {
+    titulo: formData.get("titulo"),
+    descricao: formData.get("descricao"),
+    regiao: formData.get("regiao"),
+    valido_ate: formData.get("valido_ate"),
+  };
+
+  try {
+    const data = await api("/api/alertas", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    updateResultBox("alertas-result", data);
+  } catch (error) {
+    updateResultBox("alertas-result", { ok: false, error: error.message });
+  }
+});
+
 (async function init() {
   try {
+    setupTabs();
+    
+    // Initialize Defesa Civil alertas list with one empty item
+    const alertasContainer = document.getElementById("alertas-list");
+    if (alertasContainer) {
+      addAlertaItem(alertasContainer);
+    }
+
     await refreshSensors();
     await refreshAutoStatus();
     setInterval(refreshAutoStatus, 5000);

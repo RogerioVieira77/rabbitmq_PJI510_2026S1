@@ -61,19 +61,48 @@ class PublishResponse(BaseModel):
     routing_key: str
 
 
+# --- Modelos de Simulações Independentes ---
+class PrevisaoChuva(BaseModel):
+    regiao: str = Field(..., min_length=1, max_length=100)
+    nivel: int = Field(..., ge=1, le=5)
+    descricao: str = Field(..., min_length=1, max_length=200)
+    precipitacao_mm: float = Field(..., ge=0, le=300)
+    timestamp: Optional[str] = None
+
+
+class Alerta(BaseModel):
+    regiao: str = Field(..., min_length=1, max_length=100)
+    descricao: str = Field(..., min_length=1, max_length=200)
+    severidade: str = Field(..., pattern=r"^(normal|atencao|critico)$")
+
+
+class SituacaoDefesaCivil(BaseModel):
+    status: str = Field(..., pattern=r"^(verde|amarelo|laranja|vermelho)$")
+    alertas_ativos: list[Alerta] = Field(default_factory=list, max_length=5)
+    timestamp: Optional[str] = None
+
+
+class AlertaDefesaCivil(BaseModel):
+    titulo: str = Field(..., min_length=1, max_length=100)
+    descricao: str = Field(..., min_length=1, max_length=500)
+    regiao: str = Field(..., min_length=1, max_length=100)
+    valido_ate: str = Field(...)  # ISO 8601 datetime string
+    timestamp: Optional[str] = None
+
+
 # --- Conexão RabbitMQ (robust = reconexão automática) ---
 _connection: Optional[aio_pika.abc.AbstractRobustConnection] = None
 
 
-async def _publish_messages(messages: list[tuple[str, bytes]]) -> None:
-    """Publica uma lista de (routing_key, body) usando um único canal."""
+async def _publish_messages(messages: list[tuple[str, bytes]], exchange: str = EXCHANGE_NAME) -> None:
+    """Publica uma lista de (routing_key, body) usando um único canal para o exchange especificado."""
     if _connection is None or _connection.is_closed:
         raise RuntimeError("Sem conexão AMQP disponível")
     channel = await _connection.channel()
     try:
-        exchange = await channel.get_exchange(EXCHANGE_NAME, ensure=False)
+        exchange_obj = await channel.get_exchange(exchange, ensure=False)
         for routing_key, body in messages:
-            await exchange.publish(
+            await exchange_obj.publish(
                 aio_pika.Message(
                     body=body,
                     delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
@@ -201,3 +230,73 @@ async def publicar_leituras_batch(leituras: list[LeituraSensor]):
     resultados = [{"routing_key": rk, "ok": True} for rk, _ in messages]
     logger.info("Batch publicado: %d leituras", len(resultados))
     return {"ok": True, "total": len(resultados), "leituras": resultados}
+
+
+@app.post("/api/v1/previsoes", response_model=PublishResponse, status_code=status.HTTP_201_CREATED)
+async def publicar_previsao_chuva(previsao: PrevisaoChuva):
+    """
+    Publica uma previsão de chuva na fila de previsões.
+    """
+    if not previsao.timestamp:
+        previsao.timestamp = datetime.now(timezone.utc).isoformat()
+
+    routing_key = f"previsao.{previsao.regiao.lower().replace(' ', '_')}"
+
+    try:
+        await _publish_messages([(routing_key, previsao.model_dump_json().encode())], exchange="previsoes.exchange")
+    except Exception as exc:
+        logger.error("Erro ao publicar previsão: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Broker indisponível. Tente novamente.",
+        )
+
+    logger.info("Previsão publicada: %s → Nível %d", routing_key, previsao.nivel)
+    return PublishResponse(ok=True, message="Previsão publicada", routing_key=routing_key)
+
+
+@app.post("/api/v1/defesa-civil", response_model=PublishResponse, status_code=status.HTTP_201_CREATED)
+async def publicar_situacao_defesa_civil(situacao: SituacaoDefesaCivil):
+    """
+    Publica a situação geral da Defesa Civil.
+    """
+    if not situacao.timestamp:
+        situacao.timestamp = datetime.now(timezone.utc).isoformat()
+
+    routing_key = "situacao.geral"
+
+    try:
+        await _publish_messages([(routing_key, situacao.model_dump_json().encode())], exchange="defesa.exchange")
+    except Exception as exc:
+        logger.error("Erro ao publicar situação defesa civil: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Broker indisponível. Tente novamente.",
+        )
+
+    logger.info("Situação Defesa Civil publicada: %s → Status %s (%d alertas ativos)", 
+                routing_key, situacao.status, len(situacao.alertas_ativos))
+    return PublishResponse(ok=True, message="Situação Defesa Civil publicada", routing_key=routing_key)
+
+
+@app.post("/api/v1/alertas", response_model=PublishResponse, status_code=status.HTTP_201_CREATED)
+async def publicar_alerta_defesa_civil(alerta: AlertaDefesaCivil):
+    """
+    Publica um alerta específico da Defesa Civil para uma região.
+    """
+    if not alerta.timestamp:
+        alerta.timestamp = datetime.now(timezone.utc).isoformat()
+
+    routing_key = f"alerta.{alerta.regiao.lower().replace(' ', '_')}"
+
+    try:
+        await _publish_messages([(routing_key, alerta.model_dump_json().encode())], exchange="defesa.exchange")
+    except Exception as exc:
+        logger.error("Erro ao publicar alerta: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Broker indisponível. Tente novamente.",
+        )
+
+    logger.info("Alerta Defesa Civil publicado: %s → %s", routing_key, alerta.titulo)
+    return PublishResponse(ok=True, message="Alerta Defesa Civil publicado", routing_key=routing_key)

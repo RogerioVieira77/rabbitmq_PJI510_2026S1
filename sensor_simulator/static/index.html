@@ -4,40 +4,148 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PJI510 Sensor Simulator</title>
-  <link rel="stylesheet" href="/static/style.css?v=20260507-energia" />
+  <link rel="stylesheet" href="/static/style.css?v=20260510-simulations" />
 </head>
 <body>
   <main class="container">
     <header class="header">
       <div>
-        <h1>Simulador de Sensores - Alerta Romano</h1>
-        <p>Jardim Romano: 1 reservatorio (Piscinao Romano), 2 sensores de nivel e 2 estacoes meteorologicas, com simulacao de energia e BMS.</p>
+        <h1>Simulador de Sensores & Eventos - Alerta Romano</h1>
+        <p>Simulação de sensores, previsões meteorológicas, situação e alertas da defesa civil.</p>
       </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tabs-nav">
+      <button class="tab-button active" data-tab="sensores">Sensores</button>
+      <button class="tab-button" data-tab="previsoes">Previsão Chuva</button>
+      <button class="tab-button" data-tab="defesa-civil">Situação DefCiv</button>
+      <button class="tab-button" data-tab="alertas">Alertas DefCiv</button>
+    </nav>
+
+    <!-- Tab: Sensores (Existing) -->
+    <section id="tab-sensores" class="tab-content active">
       <div class="actions-top">
         <button id="btn-random-all" class="btn">Randomizar Todos</button>
         <button id="btn-send-all" class="btn btn-primary">Enviar Todos</button>
       </div>
-    </header>
 
-    <section class="auto-panel">
-      <h2>Modo automatico</h2>
-      <div class="auto-controls">
-        <label for="interval-seconds">Intervalo (segundos)</label>
-        <input id="interval-seconds" type="number" min="1" max="3600" value="10" />
-        <button id="btn-auto-start" class="btn btn-primary">Iniciar</button>
-        <button id="btn-auto-stop" class="btn">Parar</button>
-        <span id="auto-status" class="pill">desativado</span>
-      </div>
+      <section class="auto-panel">
+        <h2>Modo automatico</h2>
+        <div class="auto-controls">
+          <label for="interval-seconds">Intervalo (segundos)</label>
+          <input id="interval-seconds" type="number" min="1" max="3600" value="10" />
+          <button id="btn-auto-start" class="btn btn-primary">Iniciar</button>
+          <button id="btn-auto-stop" class="btn">Parar</button>
+          <span id="auto-status" class="pill">desativado</span>
+        </div>
+      </section>
+
+      <section id="sensor-grid" class="grid"></section>
+
+      <section class="logs">
+        <h2>Ultimo envio</h2>
+        <pre id="send-result">Sem envios ainda.</pre>
+      </section>
     </section>
 
-    <section id="sensor-grid" class="grid"></section>
+    <!-- Tab: Previsão de Chuva -->
+    <section id="tab-previsoes" class="tab-content">
+      <h2>Previsão de Chuva - Jardim Romano</h2>
+      <form id="form-previsao" class="simulation-form">
+        <div class="form-group">
+          <label for="previsao-nivel">Nível de Chuva:</label>
+          <select id="previsao-nivel" name="nivel" required>
+            <option value="1">1 - Sem Previsão de Chuva</option>
+            <option value="2">2 - Garoa/Cuvisco</option>
+            <option value="3">3 - Chuva Fraca</option>
+            <option value="4">4 - Chuva Forte</option>
+            <option value="5">5 - Tempestade</option>
+          </select>
+        </div>
 
-    <section class="logs">
-      <h2>Ultimo envio</h2>
-      <pre id="send-result">Sem envios ainda.</pre>
+        <div class="form-group">
+          <label for="previsao-descricao">Descrição:</label>
+          <input id="previsao-descricao" name="descricao" type="text" placeholder="Ex: Chuva fraca à tarde" required />
+        </div>
+
+        <div class="form-group">
+          <label for="previsao-precipitacao">Precipitação Prevista (mm):</label>
+          <input id="previsao-precipitacao" name="precipitacao_mm" type="number" min="0" max="300" step="0.1" placeholder="Ex: 18" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Enviar Previsão</button>
+      </form>
+
+      <section class="logs">
+        <h2>Resposta</h2>
+        <pre id="previsao-result">Sem envios ainda.</pre>
+      </section>
+    </section>
+
+    <!-- Tab: Situação Defesa Civil -->
+    <section id="tab-defesa-civil" class="tab-content">
+      <h2>Situação Defesa Civil</h2>
+      <form id="form-defesa-civil" class="simulation-form">
+        <div class="form-group">
+          <label for="defesa-status">Status Geral:</label>
+          <select id="defesa-status" name="status" required>
+            <option value="verde">Verde - Normal (Sem risco iminente)</option>
+            <option value="amarelo">Amarelo - Atenção</option>
+            <option value="laranja">Laranja - Alerta</option>
+            <option value="vermelho">Vermelho - Crítico</option>
+          </select>
+        </div>
+
+        <div class="form-section">
+          <h3>Alertas Ativos (máx. 5)</h3>
+          <div id="alertas-list"></div>
+          <button type="button" id="btn-add-alerta" class="btn btn-secondary">+ Adicionar Alerta</button>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Enviar Situação</button>
+      </form>
+
+      <section class="logs">
+        <h2>Resposta</h2>
+        <pre id="defesa-civil-result">Sem envios ainda.</pre>
+      </section>
+    </section>
+
+    <!-- Tab: Alertas Defesa Civil -->
+    <section id="tab-alertas" class="tab-content">
+      <h2>Alerta Específico - Defesa Civil</h2>
+      <form id="form-alertas" class="simulation-form">
+        <div class="form-group">
+          <label for="alerta-titulo">Título do Alerta:</label>
+          <input id="alerta-titulo" name="titulo" type="text" placeholder="Ex: Atenção: chuvas intensas" required />
+        </div>
+
+        <div class="form-group">
+          <label for="alerta-descricao">Descrição:</label>
+          <textarea id="alerta-descricao" name="descricao" placeholder="Detalhe do alerta" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="alerta-regiao">Região:</label>
+          <input id="alerta-regiao" name="regiao" type="text" value="Jardim Romano" placeholder="Ex: Jardim Romano" required />
+        </div>
+
+        <div class="form-group">
+          <label for="alerta-validade">Válido Até (ISO 8601):</label>
+          <input id="alerta-validade" name="valido_ate" type="text" placeholder="Ex: 2026-05-10T21:00:00Z" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Enviar Alerta</button>
+      </form>
+
+      <section class="logs">
+        <h2>Resposta</h2>
+        <pre id="alertas-result">Sem envios ainda.</pre>
+      </section>
     </section>
   </main>
 
-  <script src="/static/app.js?v=20260507-energia"></script>
+  <script src="/static/app.js?v=20260510-simulations"></script>
 </body>
 </html>

@@ -79,6 +79,152 @@ body {
   cursor: not-allowed;
 }
 
+.btn-secondary {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.btn-secondary:hover {
+  background: #f0f2f5;
+}
+
+/* Tab Navigation */
+.tabs-nav {
+  margin-top: 18px;
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px 8px 0 0;
+}
+
+.tab-button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+  color: var(--text);
+  background: #f9fafb;
+}
+
+.tab-button.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Tab Content */
+.tab-content {
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Simulation Forms */
+.simulation-form {
+  margin-top: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-section {
+  margin: 18px 0;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.form-section h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 104, 201, 0.1);
+}
+
+/* Alerta Item */
+.alerta-item {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.alerta-item .form-group {
+  margin-bottom: 8px;
+}
+
+.alerta-item .btn-remove {
+  background: #fde7e7;
+  color: var(--err);
+  border-color: #f2b8b8;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.alerta-item .btn-remove:hover {
+  background: #fcd5d5;
+}
+
 .auto-panel,
 .logs {
   margin-top: 18px;

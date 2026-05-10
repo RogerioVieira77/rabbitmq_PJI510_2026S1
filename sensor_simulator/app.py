@@ -443,3 +443,87 @@ async def auto_start(body: AutoStartRequest) -> dict[str, Any]:
 async def auto_stop() -> dict[str, Any]:
     AUTO_STATE["enabled"] = False
     return {"ok": True, "message": "Envio automatico desativado", "auto": AUTO_STATE}
+
+
+# --- Endpoints para Simulações Independentes ---
+
+class PrevisaoChuvaRequest(BaseModel):
+    regiao: str = Field(default="Jardim Romano", min_length=1, max_length=100)
+    nivel: int = Field(..., ge=1, le=5)
+    descricao: str = Field(..., min_length=1, max_length=200)
+    precipitacao_mm: float = Field(..., ge=0, le=300)
+
+
+class AlertaDefesaCivilItem(BaseModel):
+    regiao: str = Field(..., min_length=1, max_length=100)
+    descricao: str = Field(..., min_length=1, max_length=200)
+    severidade: str = Field(..., pattern=r"^(normal|atencao|critico)$")
+
+
+class SituacaoDefesaCivilRequest(BaseModel):
+    status: str = Field(..., pattern=r"^(verde|amarelo|laranja|vermelho)$")
+    alertas_ativos: list[AlertaDefesaCivilItem] = Field(default_factory=list, max_length=5)
+
+
+class AlertaDefesaCivilRequest(BaseModel):
+    titulo: str = Field(..., min_length=1, max_length=100)
+    descricao: str = Field(..., min_length=1, max_length=500)
+    regiao: str = Field(default="Jardim Romano", min_length=1, max_length=100)
+    valido_ate: str = Field(...)  # ISO 8601 datetime string
+
+
+@app.post("/api/previsoes")
+async def send_previsao_chuva(body: PrevisaoChuvaRequest) -> dict[str, Any]:
+    """Publica uma previsão de chuva no API Bridge."""
+    payload = body.model_dump()
+    async with httpx.AsyncClient(timeout=SEND_TIMEOUT_SECONDS) as client:
+        response = await client.post(f"{API_BRIDGE_URL}/api/v1/previsoes", json=payload)
+    
+    try:
+        response_data = response.json()
+    except Exception:
+        response_data = response.text
+    
+    return {
+        "ok": response.status_code == 201,
+        "status_code": response.status_code,
+        "response": response_data,
+    }
+
+
+@app.post("/api/defesa-civil")
+async def send_situacao_defesa_civil(body: SituacaoDefesaCivilRequest) -> dict[str, Any]:
+    """Publica a situação da Defesa Civil no API Bridge."""
+    payload = body.model_dump()
+    async with httpx.AsyncClient(timeout=SEND_TIMEOUT_SECONDS) as client:
+        response = await client.post(f"{API_BRIDGE_URL}/api/v1/defesa-civil", json=payload)
+    
+    try:
+        response_data = response.json()
+    except Exception:
+        response_data = response.text
+    
+    return {
+        "ok": response.status_code == 201,
+        "status_code": response.status_code,
+        "response": response_data,
+    }
+
+
+@app.post("/api/alertas")
+async def send_alerta_defesa_civil(body: AlertaDefesaCivilRequest) -> dict[str, Any]:
+    """Publica um alerta específico da Defesa Civil no API Bridge."""
+    payload = body.model_dump()
+    async with httpx.AsyncClient(timeout=SEND_TIMEOUT_SECONDS) as client:
+        response = await client.post(f"{API_BRIDGE_URL}/api/v1/alertas", json=payload)
+    
+    try:
+        response_data = response.json()
+    except Exception:
+        response_data = response.text
+    
+    return {
+        "ok": response.status_code == 201,
+        "status_code": response.status_code,
+        "response": response_data,
+    }
