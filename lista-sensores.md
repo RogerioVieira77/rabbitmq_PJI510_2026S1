@@ -43,16 +43,49 @@ Cenario oficial: localidade unica Jardim Romano, com monitoramento do Piscinao R
 
 ---
 
+## Bombas de Drenagem
+
+| ID | Label | Localização | Métrica | Valores |
+|---|---|---|---|---|
+| `BOMBA-DRE-001` | Bomba de Drenagem 1 (Piscinao Romano) | Piscinao Romano | `estado_bomba` | `1.0` = Ligada · `0.0` = Desligada |
+| `BOMBA-DRE-002` | Bomba de Drenagem 2 (Piscinao Romano) | Piscinao Romano | `estado_bomba` | `1.0` = Ligada · `0.0` = Desligada |
+| `BOMBA-DRE-003` | Bomba de Drenagem 3 (Piscinao Romano) | Piscinao Romano | `estado_bomba` | `1.0` = Ligada · `0.0` = Desligada |
+| `BOMBA-DRE-004` | Bomba de Drenagem 4 (Piscinao Romano) | Piscinao Romano | `estado_bomba` | `1.0` = Ligada · `0.0` = Desligada |
+| `BOMBA-DRE-005` | Bomba de Drenagem 5 (Piscinao Romano) | Piscinao Romano | `estado_bomba` | `1.0` = Ligada · `0.0` = Desligada |
+
+**Coordenadas:**
+
+- `BOMBA-DRE-001`: latitude `-23.477310`, longitude `-46.382610`
+- `BOMBA-DRE-002`: latitude `-23.477380`, longitude `-46.382680`
+- `BOMBA-DRE-003`: latitude `-23.477450`, longitude `-46.382760`
+- `BOMBA-DRE-004`: latitude `-23.477520`, longitude `-46.382830`
+- `BOMBA-DRE-005`: latitude `-23.477590`, longitude `-46.382910`
+
+### Métrica das Bombas de Drenagem
+
+| Tipo (`tipo_sensor`) | Unidade | Valores | Descrição |
+|---|---|---|---|
+| `estado_bomba` | bool | `1.0` / `0.0` | Estado operacional da bomba (1 = ligada, 0 = desligada) |
+
+> Cada envio de uma bomba gera **1 mensagem** no RabbitMQ com o estado atual.
+
+---
+
 ## Routing Keys (RabbitMQ)
 
-Formato: `sensores.<tipo_sensor>.<sensor_id>`
+Formato: `sensor.<tipo_sensor>.<sensor_id>`
 
 Exemplos:
 
-- `sensores.nivel_agua.SENSOR-RES-001`
-- `sensores.nivel_agua.SENSOR-RES-002`
-- `sensores.temperatura.ESTACAO-MET-001`
-- `sensores.pluviometro.ESTACAO-MET-002`
+- `sensor.nivel_agua.SENSOR-RES-001`
+- `sensor.nivel_agua.SENSOR-RES-002`
+- `sensor.temperatura.ESTACAO-MET-001`
+- `sensor.pluviometro.ESTACAO-MET-002`
+- `sensor.estado_bomba.BOMBA-DRE-001`
+- `sensor.estado_bomba.BOMBA-DRE-002`
+- `sensor.estado_bomba.BOMBA-DRE-003`
+- `sensor.estado_bomba.BOMBA-DRE-004`
+- `sensor.estado_bomba.BOMBA-DRE-005`
 
 Exchange: `sensores.exchange` (topic)  
 Vhost: `/pji510`

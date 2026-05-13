@@ -16,7 +16,7 @@
       "user": "sensor_producer",
       "vhost": "/pji510",
       "configure": "",
-      "write": "sensores\\..*",
+      "write": "sensores\\..*|previsoes\\..*|defesa\\..*",
       "read": ""
     },
     {
@@ -24,14 +24,7 @@
       "vhost": "/pji510",
       "configure": "",
       "write": "",
-      "read": "sensores\\..*"
-    },
-    {
-      "user": "simulador_app",
-      "vhost": "/pji510",
-      "configure": "",
-      "write": "previsoes\\..*|defesa\\..*",
-      "read": ""
+      "read": "sensores\\..*|previsoes\\..*|defesa\\..*"
     }
   ],
   "exchanges": [

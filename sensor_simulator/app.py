@@ -125,6 +125,91 @@ SENSOR_STATE: dict[str, dict[str, Any]] = {
             "descricao": "Piscinao Romano",
         },
     },
+    "BOMBA-DRE-001": {
+        "sensor_id": "BOMBA-DRE-001",
+        "kind": "bomba",
+        "label": "Bomba de Drenagem 1 (Piscinao Romano)",
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bateria_pct": 100,
+        "bms_nivel": "normal",
+        "values": {"estado_bomba": 0},
+        "ranges": {"estado_bomba": {"min": 0, "max": 1, "step": 1}},
+        "units": {"estado_bomba": "bool"},
+        "location": {
+            "latitude": -23.477310,
+            "longitude": -46.382610,
+            "descricao": "Piscinao Romano - Bomba 1",
+        },
+    },
+    "BOMBA-DRE-002": {
+        "sensor_id": "BOMBA-DRE-002",
+        "kind": "bomba",
+        "label": "Bomba de Drenagem 2 (Piscinao Romano)",
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bateria_pct": 100,
+        "bms_nivel": "normal",
+        "values": {"estado_bomba": 0},
+        "ranges": {"estado_bomba": {"min": 0, "max": 1, "step": 1}},
+        "units": {"estado_bomba": "bool"},
+        "location": {
+            "latitude": -23.477380,
+            "longitude": -46.382680,
+            "descricao": "Piscinao Romano - Bomba 2",
+        },
+    },
+    "BOMBA-DRE-003": {
+        "sensor_id": "BOMBA-DRE-003",
+        "kind": "bomba",
+        "label": "Bomba de Drenagem 3 (Piscinao Romano)",
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bateria_pct": 100,
+        "bms_nivel": "normal",
+        "values": {"estado_bomba": 0},
+        "ranges": {"estado_bomba": {"min": 0, "max": 1, "step": 1}},
+        "units": {"estado_bomba": "bool"},
+        "location": {
+            "latitude": -23.477450,
+            "longitude": -46.382760,
+            "descricao": "Piscinao Romano - Bomba 3",
+        },
+    },
+    "BOMBA-DRE-004": {
+        "sensor_id": "BOMBA-DRE-004",
+        "kind": "bomba",
+        "label": "Bomba de Drenagem 4 (Piscinao Romano)",
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bateria_pct": 100,
+        "bms_nivel": "normal",
+        "values": {"estado_bomba": 0},
+        "ranges": {"estado_bomba": {"min": 0, "max": 1, "step": 1}},
+        "units": {"estado_bomba": "bool"},
+        "location": {
+            "latitude": -23.477520,
+            "longitude": -46.382830,
+            "descricao": "Piscinao Romano - Bomba 4",
+        },
+    },
+    "BOMBA-DRE-005": {
+        "sensor_id": "BOMBA-DRE-005",
+        "kind": "bomba",
+        "label": "Bomba de Drenagem 5 (Piscinao Romano)",
+        "ativo": True,
+        "fonte_alimentacao": "rede",
+        "bateria_pct": 100,
+        "bms_nivel": "normal",
+        "values": {"estado_bomba": 0},
+        "ranges": {"estado_bomba": {"min": 0, "max": 1, "step": 1}},
+        "units": {"estado_bomba": "bool"},
+        "location": {
+            "latitude": -23.477590,
+            "longitude": -46.382910,
+            "descricao": "Piscinao Romano - Bomba 5",
+        },
+    },
 }
 
 AUTO_STATE: dict[str, Any] = {"enabled": False, "interval_seconds": 10}
@@ -182,6 +267,10 @@ def _randomize_sensor(sensor: dict[str, Any]) -> None:
         sensor["bateria_pct"] = min(100, int(sensor["bateria_pct"]) + random.randint(0, 2))
     sensor["bms_nivel"] = _bms_from_battery_pct(int(sensor["bateria_pct"]))
 
+    if sensor["kind"] == "bomba":
+        sensor["values"]["estado_bomba"] = random.randint(0, 1)
+        return
+
     if sensor["kind"] == "water":
         sensor["values"]["nivel_agua"] = round(random.uniform(0.0, 8.0), 2)
         return
@@ -231,6 +320,8 @@ def _status_for(tipo_sensor: str, valor: float) -> str:
         if valor <= 850 or valor >= 1065:
             return "alerta"
         return "normal"
+    if tipo_sensor == "estado_bomba":
+        return "normal"
     return "normal"
 
 
@@ -248,6 +339,23 @@ def _build_payloads(sensor: dict[str, Any]) -> list[dict[str, Any]]:
                 "valor": value,
                 "unidade": "m",
                 "status": _status_for("nivel_agua", value),
+                "localizacao": location,
+                "bateria_pct": int(sensor["bateria_pct"]),
+                "ativo": bool(sensor["ativo"]),
+                "fonte_alimentacao": sensor["fonte_alimentacao"],
+                "bms_nivel": sensor["bms_nivel"],
+            }
+        ]
+
+    if sensor["kind"] == "bomba":
+        value = float(values["estado_bomba"])
+        return [
+            {
+                "sensor_id": sensor_id,
+                "tipo_sensor": "estado_bomba",
+                "valor": value,
+                "unidade": "bool",
+                "status": "normal",
                 "localizacao": location,
                 "bateria_pct": int(sensor["bateria_pct"]),
                 "ativo": bool(sensor["ativo"]),

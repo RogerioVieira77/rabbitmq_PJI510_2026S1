@@ -16,7 +16,23 @@ async function api(path, options = {}) {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.detail || "Falha na requisicao");
+    let detail = data?.detail;
+    if (Array.isArray(detail)) {
+      detail = detail
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object") {
+            const loc = Array.isArray(item.loc) ? item.loc.join(".") : "campo";
+            const msg = item.msg || JSON.stringify(item);
+            return `${loc}: ${msg}`;
+          }
+          return String(item);
+        })
+        .join(" | ");
+    } else if (detail && typeof detail === "object") {
+      detail = JSON.stringify(detail);
+    }
+    throw new Error(detail || "Falha na requisicao");
   }
   return data;
 }
@@ -100,6 +116,7 @@ function toLabel(fieldName) {
     temperatura: "Temperatura",
     umidade: "Umidade",
     pressao: "Pressao atmosferica",
+    estado_bomba: "Estado da Bomba",
   };
   return map[fieldName] || fieldName;
 }
@@ -132,7 +149,7 @@ function renderSensors() {
     title.textContent = sensor.label;
 
     const sub = document.createElement("small");
-    sub.textContent = `${sensor.sensor_id} • ${sensor.kind === "water" ? "Nivel" : "Meteorologica"}`;
+    sub.textContent = `${sensor.sensor_id} • ${sensor.kind === "water" ? "Nivel" : sensor.kind === "bomba" ? "Bomba de Drenagem" : "Meteorologica"}`;
 
     const statusBadge = document.createElement("span");
     statusBadge.className = `sensor-state ${sensor.ativo ? "on" : "off"}`;
@@ -183,7 +200,7 @@ function renderSensors() {
     const sourceSelect = document.createElement("select");
     [
       { value: "rede", label: "Rede eletrica" },
-      { value: "bateria", label: "Bateria emergencia" },
+      { value: "bateria", label: sensor.kind === "bomba" ? "Gerador de Emergencia" : "Bateria emergencia" },
     ].forEach((opt) => {
       const option = document.createElement("option");
       option.value = opt.value;
@@ -210,7 +227,7 @@ function renderSensors() {
     const batteryRow = document.createElement("div");
     batteryRow.className = "field";
     const batteryLabel = document.createElement("label");
-    batteryLabel.textContent = "Bateria";
+    batteryLabel.textContent = sensor.kind === "bomba" ? "Gerador de Emergencia" : "Bateria";
     const batteryInput = document.createElement("input");
     batteryInput.type = "number";
     batteryInput.min = 0;
@@ -236,7 +253,7 @@ function renderSensors() {
     const bmsRow = document.createElement("div");
     bmsRow.className = "field";
     const bmsLabel = document.createElement("label");
-    bmsLabel.textContent = "BMS";
+    bmsLabel.textContent = sensor.kind === "bomba" ? "Rotacao" : "BMS";
     const bmsSelect = document.createElement("select");
     ["normal", "alerta", "critico"].forEach((level) => {
       const option = document.createElement("option");
@@ -274,28 +291,51 @@ function renderSensors() {
       const label = document.createElement("label");
       label.textContent = toLabel(field);
 
-      const input = document.createElement("input");
-      input.type = "number";
-      input.value = value;
-      input.min = range.min;
-      input.max = range.max;
-      input.step = range.step;
-
-      input.addEventListener("change", async () => {
-        try {
-          await updateSensorFields(sensor.sensor_id, { [field]: Number(input.value) });
-          await refreshSensors();
-        } catch (error) {
-          updateResult({ ok: false, error: error.message });
-          await refreshSensors();
-        }
-      });
+      let control;
+      if (field === "estado_bomba") {
+        control = document.createElement("select");
+        [
+          { value: "1", label: "Ligada" },
+          { value: "0", label: "Desligada" },
+        ].forEach((opt) => {
+          const option = document.createElement("option");
+          option.value = opt.value;
+          option.textContent = opt.label;
+          control.appendChild(option);
+        });
+        control.value = String(value);
+        control.addEventListener("change", async () => {
+          try {
+            await updateSensorFields(sensor.sensor_id, { [field]: Number(control.value) });
+            await refreshSensors();
+          } catch (error) {
+            updateResult({ ok: false, error: error.message });
+            await refreshSensors();
+          }
+        });
+      } else {
+        control = document.createElement("input");
+        control.type = "number";
+        control.value = value;
+        control.min = range.min;
+        control.max = range.max;
+        control.step = range.step;
+        control.addEventListener("change", async () => {
+          try {
+            await updateSensorFields(sensor.sensor_id, { [field]: Number(control.value) });
+            await refreshSensors();
+          } catch (error) {
+            updateResult({ ok: false, error: error.message });
+            await refreshSensors();
+          }
+        });
+      }
 
       const unitTag = document.createElement("small");
       unitTag.textContent = unit;
 
       row.appendChild(label);
-      row.appendChild(input);
+      row.appendChild(control);
       row.appendChild(unitTag);
       fieldsWrap.appendChild(row);
     });
